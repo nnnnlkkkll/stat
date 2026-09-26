@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { Place } from "../components/Place";
 import { StoryViewer } from "../components/StoryViewer";
@@ -27,6 +27,7 @@ function PlacePage({ handle }: { handle: string | null }) {
   const nav = useNavigate();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [err, setErr] = useState("");
+  const [notFound, setNotFound] = useState(false);
   const [actionErr, setActionErr] = useState("");
   const [storyOpen, setStoryOpen] = useState(false);
   const [reportOn, setReportOn] = useState(false);
@@ -36,11 +37,13 @@ function PlacePage({ handle }: { handle: string | null }) {
     let live = true;
     setLoaded(null);
     setErr("");
+    setNotFound(false);
     setActionErr("");
     setStoryOpen(false);
     setReportOn(false);
 
     if (!handle) {
+      setNotFound(true);
       setErr("that is not a name.");
       return;
     }
@@ -50,6 +53,7 @@ function PlacePage({ handle }: { handle: string | null }) {
         const data = await api.user(handle);
         if (!live) return;
         if (data.user.username !== handle) {
+          setNotFound(true);
           setErr("profile did not match the address.");
           return;
         }
@@ -69,6 +73,8 @@ function PlacePage({ handle }: { handle: string | null }) {
         });
       } catch (error) {
         if (!live) return;
+        const status = error instanceof ApiError ? error.status : 0;
+        setNotFound(status === 404);
         setErr(error instanceof ApiError ? error.message : "couldn't open that place.");
       }
     })();
@@ -80,17 +86,25 @@ function PlacePage({ handle }: { handle: string | null }) {
 
   if (err) {
     return (
-      <div className="page-pad">
-        <div className="empty">
-          <b>gone, or never here.</b>
-          {err}
-        </div>
+      <div className="place-missing">
+        <b>{notFound ? "No one here." : "Couldn't open this place."}</b>
+        <p>{notFound ? "That name is free, gone, or never existed on STAT." : err}</p>
+        <p>
+          <Link to="/">back to discover</Link>
+        </p>
       </div>
     );
   }
 
   if (!loaded || loaded.user.username !== handle) {
-    return <div className="status-line">opening their place…</div>;
+    return (
+      <div className="place-skel" aria-busy="true" aria-live="polite">
+        <div className="place-skel-face" />
+        <div className="place-skel-line" style={{ width: 140 }} />
+        <div className="place-skel-line" style={{ width: 88 }} />
+        <p>opening their place…</p>
+      </div>
+    );
   }
 
   const { user, viewer } = loaded;

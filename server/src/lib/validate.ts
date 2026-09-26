@@ -69,10 +69,13 @@ const optionalHex = z
 export const layoutConfigSchema = z
   .object({
     order: z
-      .array(z.enum(["header", "links", "stories", "posts", "stats"]))
-      .max(8)
+      .array(z.enum(["header", "links", "stories", "posts", "stats", "media", "about", "actions"]))
+      .max(12)
       .optional(),
+    sections: z.array(z.enum(["posts", "media", "about"])).max(6).optional(),
     showStats: z.boolean().optional(),
+    showViews: z.boolean().optional(),
+    showLinks: z.boolean().optional(),
     bannerStyle: z.enum(["full", "strip", "none"]).optional(),
     featuredPostId: z.string().max(40).nullable().optional(),
     bgType: z.enum(["color", "image", "video"]).optional(),
@@ -81,6 +84,12 @@ export const layoutConfigSchema = z
     font: z.enum(["serif", "sans", "mono"]).optional(),
     effect: z.enum(["none", "grain", "scan"]).optional(),
     align: z.enum(["center", "left"]).optional(),
+    composition: z.enum(["editorial", "minimal", "wide", "zine"]).optional(),
+    density: z.enum(["tight", "regular", "loose"]).optional(),
+    avatarShape: z.enum(["circle", "rounded", "square"]).optional(),
+    avatarSize: z.enum(["md", "lg", "xl"]).optional(),
+    border: z.enum(["none", "hairline", "solid"]).optional(),
+    radius: z.enum(["none", "subtle", "round"]).optional(),
     musicUrl: z.string().max(400).nullable().optional(),
     musicTitle: z.string().max(80).nullable().optional(),
     videoUrl: z.string().max(400).nullable().optional(),

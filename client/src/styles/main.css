@@ -714,7 +714,7 @@ button.profile-face {
   gap: 10px 8px;
 }
 
-.edit-space { max-width: 520px; }
+.edit-space { max-width: 1180px; }
 .edit-space h1 {
   font-family: var(--font);
   font-weight: 600;
@@ -734,37 +734,74 @@ button.profile-face {
 }
 .edit-kicker { font-family: var(--font); font-size: 12px; }
 .edit-lead { margin: 0 0 22px; }
-.edit-preview {
-  margin-bottom: 22px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--line);
+.edit-layout {
+  display: grid;
+  grid-template-columns: minmax(18rem, 26rem) minmax(0, 1fr);
+  gap: 36px;
+  align-items: start;
 }
-.edit-preview-banner {
-  height: 64px;
-  margin: 0 -4px;
-  background: var(--you) center/cover no-repeat;
-  border: 1px solid var(--line);
-}
-.edit-preview-banner.strip { height: 22px; }
-.edit-preview-banner.none {
-  height: 6px;
-  border: 0;
-}
-.edit-preview-row {
+.edit-cats {
   display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  margin-top: -28px;
-  padding: 0 8px;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-bottom: 18px;
 }
-.edit-preview .avatar {
-  border: 3px solid var(--paper);
-  background: var(--you);
-  color: var(--mark-ink);
+.edit-cats button {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  padding: 0 0 6px;
+  cursor: pointer;
+  opacity: 0.45;
+  border-bottom: 1px solid transparent;
 }
-.edit-preview .uname { font-family: var(--font); font-size: 11px; color: var(--mute); }
-.edit-preview.stacked .edit-preview-row { flex-direction: column; align-items: flex-start; }
-.edit-preview.compact .edit-preview-banner { height: 40px; }
+.edit-cats button.on,
+.edit-cats button[aria-selected="true"] {
+  opacity: 1;
+  border-bottom-color: currentColor;
+}
+.edit-section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.edit-order button {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+  cursor: pointer;
+}
+.edit-live-kicker {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.45;
+  margin: 0 0 10px;
+}
+.edit-live {
+  position: sticky;
+  top: 16px;
+}
+.edit-live-frame {
+  border: 1px solid var(--line);
+  min-height: 70vh;
+  max-height: 78vh;
+  overflow: auto;
+  background: #000;
+}
+@media (max-width: 900px) {
+  .edit-layout { grid-template-columns: 1fr; }
+  .edit-live { position: relative; top: 0; }
+  .edit-live-frame { min-height: 520px; max-height: 70vh; }
+}
 
 .grid {
   display: grid;
