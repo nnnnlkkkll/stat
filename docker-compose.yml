@@ -1,0 +1,19 @@
+# Local PostgreSQL for development only.
+# Production should use a managed database and never reuse these credentials.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ick-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ick
+      POSTGRES_PASSWORD: ick_dev_password
+      POSTGRES_DB: ick
+    ports:
+      - "5432:5432"
+    volumes:
+      - ick_pgdata:/var/lib/postgresql/data
+
+volumes:
+  ick_pgdata:

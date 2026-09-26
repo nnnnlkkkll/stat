@@ -1,0 +1,406 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  username     String    @unique
+  email        String    @unique
+  passwordHash String
+  kind         String    @default("human")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  lastLoginAt       DateTime?
+  lastSeenAt        DateTime?
+  emailVerifiedAt   DateTime?
+  failedLogins      Int       @default(0)
+  lockedUntil       DateTime?
+
+  profile Profile?
+
+  sessions   Session[]
+  authTokens AuthToken[]
+  posts    Post[]
+  stories  Story[]
+  comments Comment[]
+
+  postLikes           PostLike[]
+  profileLikesGiven   ProfileLike[] @relation("ProfileLikesGiven")
+  profileLikesReceived ProfileLike[] @relation("ProfileLikesReceived")
+
+  favoritesGiven    Favorite[] @relation("FavoritesGiven")
+  favoritesReceived Favorite[] @relation("FavoritesReceived")
+
+  following Follow[] @relation("Following")
+  followers Follow[] @relation("Followers")
+
+  conversationMembers ConversationMember[]
+  messages            Message[]
+
+  notifications         Notification[] @relation("NotificationRecipient")
+  notificationsActed    Notification[] @relation("NotificationActor")
+
+  blocksGiven    Block[]  @relation("BlocksGiven")
+  blocksReceived Block[]  @relation("BlocksReceived")
+  reportsGiven   Report[] @relation("ReportsGiven")
+  reportsReceived Report[] @relation("ReportsReceived")
+
+  storyViews  StoryView[]
+  storyReplies StoryReply[]
+
+  friendRequestsSent     FriendRequest[] @relation("FriendRequestsSent")
+  friendRequestsReceived FriendRequest[] @relation("FriendRequestsReceived")
+  friendshipsLow         Friendship[]    @relation("FriendshipLow")
+  friendshipsHigh        Friendship[]    @relation("FriendshipHigh")
+  messageReactions       MessageReaction[]
+
+  @@index([username])
+  @@index([email])
+  @@index([createdAt])
+  @@index([kind])
+  @@map("users")
+}
+
+model Profile {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  displayName    String
+  bio            String   @default("")
+  avatarUrl      String?
+  bannerUrl      String?
+  links          Json     @default("[]")
+  theme          String   @default("default")
+  accentColor    String   @default("#d6ff2f")
+  layout         String   @default("classic")
+  layoutConfig   Json     @default("{}")
+  likesCount     Int      @default(0)
+  favoritesCount Int      @default(0)
+  followersCount Int      @default(0)
+  followingCount Int      @default(0)
+  viewsCount     Int      @default(0)
+  isPrivate      Boolean  @default(false)
+  showLikes      Boolean  @default(true)
+  allowMessages  String   @default("everyone")
+  readReceipts   Boolean  @default(true)
+  updatedAt      DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  userAgent String?
+  ip        String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model AuthToken {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([expiresAt])
+  @@map("auth_tokens")
+}
+
+model Post {
+  id            String   @id @default(cuid())
+  userId        String
+  type          String   @default("image")
+  mediaUrl      String?
+  caption       String   @default("")
+  createdAt     DateTime @default(now())
+  likesCount    Int      @default(0)
+  commentsCount Int      @default(0)
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  likes    PostLike[]
+  comments Comment[]
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("posts")
+}
+
+model Story {
+  id        String   @id @default(cuid())
+  userId    String
+  mediaUrl  String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  views   StoryView[]
+  replies StoryReply[]
+
+  @@index([userId, expiresAt])
+  @@index([expiresAt])
+  @@map("stories")
+}
+
+model StoryView {
+  storyId   String
+  viewerId  String
+  createdAt DateTime @default(now())
+
+  story  Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  viewer User  @relation(fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@id([storyId, viewerId])
+  @@index([storyId, createdAt(sort: Desc)])
+  @@map("story_views")
+}
+
+model StoryReply {
+  id        String   @id @default(cuid())
+  storyId   String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  story Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([storyId, createdAt])
+  @@map("story_replies")
+}
+
+model PostLike {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+  @@index([postId])
+  @@map("post_likes")
+}
+
+model ProfileLike {
+  likerId   String
+  targetId  String
+  createdAt DateTime @default(now())
+
+  liker  User @relation("ProfileLikesGiven", fields: [likerId], references: [id], onDelete: Cascade)
+  target User @relation("ProfileLikesReceived", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@id([likerId, targetId])
+  @@index([targetId])
+  @@map("profile_likes")
+}
+
+model Favorite {
+  userId    String
+  targetId  String
+  createdAt DateTime @default(now())
+
+  user   User @relation("FavoritesGiven", fields: [userId], references: [id], onDelete: Cascade)
+  target User @relation("FavoritesReceived", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@id([userId, targetId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([targetId])
+  @@map("favorites")
+}
+
+model Follow {
+  followerId String
+  followeeId String
+  createdAt  DateTime @default(now())
+
+  follower User @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  followee User @relation("Followers", fields: [followeeId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followeeId])
+  @@index([followeeId, createdAt(sort: Desc)])
+  @@index([followerId, createdAt(sort: Desc)])
+  @@map("follows")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@map("comments")
+}
+
+model Conversation {
+  id        String   @id @default(cuid())
+  pairKey   String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members  ConversationMember[]
+  messages Message[]
+
+  @@map("conversations")
+}
+
+model ConversationMember {
+  conversationId String
+  userId         String
+  lastReadAt     DateTime?
+  joinedAt       DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_members")
+}
+
+model Message {
+  id             String    @id @default(cuid())
+  conversationId String
+  senderId       String
+  body           String    @default("")
+  type           String    @default("text")
+  mediaUrl       String?
+  duration       Int?
+  editedAt       DateTime?
+  deleted        Boolean   @default(false)
+  replyToId      String?
+  createdAt      DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo      Message?     @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies      Message[]    @relation("MessageReplies")
+  reactions    MessageReaction[]
+
+  @@index([conversationId, createdAt])
+  @@map("messages")
+}
+
+model MessageReaction {
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId, emoji])
+  @@index([messageId])
+  @@map("message_reactions")
+}
+
+model FriendRequest {
+  id        String   @id @default(cuid())
+  fromId    String
+  toId      String
+  createdAt DateTime @default(now())
+
+  from User @relation("FriendRequestsSent", fields: [fromId], references: [id], onDelete: Cascade)
+  to   User @relation("FriendRequestsReceived", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId])
+  @@index([toId, createdAt(sort: Desc)])
+  @@index([fromId])
+  @@map("friend_requests")
+}
+
+model Friendship {
+  userLowId  String
+  userHighId String
+  createdAt  DateTime @default(now())
+
+  userLow  User @relation("FriendshipLow", fields: [userLowId], references: [id], onDelete: Cascade)
+  userHigh User @relation("FriendshipHigh", fields: [userHighId], references: [id], onDelete: Cascade)
+
+  @@id([userLowId, userHighId])
+  @@index([userHighId])
+  @@map("friendships")
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String
+  actorId    String?
+  type       String
+  entityType String?
+  entityId   String?
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user  User  @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("NotificationActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+model Block {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker User @relation("BlocksGiven", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlocksReceived", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("blocks")
+}
+
+model ProfileView {
+  profileUserId String
+  viewerKey     String
+  day           String
+  createdAt     DateTime @default(now())
+
+  @@id([profileUserId, viewerKey, day])
+  @@index([profileUserId])
+  @@map("profile_views")
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String
+  targetId   String
+  reason     String
+  details    String   @default("")
+  createdAt  DateTime @default(now())
+
+  reporter User @relation("ReportsGiven", fields: [reporterId], references: [id], onDelete: Cascade)
+  target   User @relation("ReportsReceived", fields: [targetId], references: [id], onDelete: Cascade)
+
+  @@index([targetId, createdAt(sort: Desc)])
+  @@index([reporterId])
+  @@map("reports")
+}
