@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -18,10 +17,6 @@ import { uploadsRouter } from "./routes/uploads.js";
 import { friendsRouter } from "./routes/friends.js";
 import { usersRouter } from "./routes/users.js";
 
-if (!process.env.VERCEL) {
-  fs.mkdirSync(config.uploadDir, { recursive: true });
-}
-
 const app = express();
 
 app.set("trust proxy", 1);
@@ -39,9 +34,6 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
-if (!process.env.VERCEL) {
-  app.use("/uploads", express.static(config.uploadDir));
-}
 app.use(attachUser);
 
 app.get("/api/health", (_req, res) => {
@@ -64,7 +56,7 @@ app.use(errorHandler);
 
 export default app;
 
-if (!process.env.VERCEL) {
+if (process.env.STAT_STANDALONE === "1" || (process.env.NODE_ENV !== "production" && !process.env.VERCEL && !process.env.VERCEL_ENV)) {
   const server = app.listen(config.port, () => {
     console.log(`stat api on http://localhost:${config.port}`);
   });
