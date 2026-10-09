@@ -18,7 +18,9 @@ import { uploadsRouter } from "./routes/uploads.js";
 import { friendsRouter } from "./routes/friends.js";
 import { usersRouter } from "./routes/users.js";
 
-fs.mkdirSync(config.uploadDir, { recursive: true });
+if (!process.env.VERCEL) {
+  fs.mkdirSync(config.uploadDir, { recursive: true });
+}
 
 const app = express();
 
@@ -58,15 +60,19 @@ app.use("/api", safetyRouter);
 app.use(notFound);
 app.use(errorHandler);
 
-const server = app.listen(config.port, () => {
-  console.log(`stat api on http://localhost:${config.port}`);
-});
+export default app;
 
-async function shutdown() {
-  server.close();
-  await prisma.$disconnect();
-  process.exit(0);
+if (!process.env.VERCEL) {
+  const server = app.listen(config.port, () => {
+    console.log(`stat api on http://localhost:${config.port}`);
+  });
+
+  async function shutdown() {
+    server.close();
+    await prisma.$disconnect();
+    process.exit(0);
+  }
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
-
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
