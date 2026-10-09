@@ -36,3 +36,11 @@ For verification locally run `npm ci && npm run build` from each service directo
 - Existing local media files will not persist on Vercel; migrate media if retaining old data.
 
 Do not merge the pull request or invite public registrations until these checks succeed.
+
+## Preview the changes without merging
+
+The Vercel production deployment normally uses GitHub `main`. The changes on `chore/vercel-services-deployment` are intentionally **not merged**. To test them, deploy a **Preview** build of this branch through the existing STAT Vercel project. A new Git push should trigger the branch build when Vercel Git preview deployments are enabled and the project is linked to this repository.
+
+If you just added or edited Vercel environment variables, use **Redeploy** to create a fresh deployment; previous deployments do not automatically inherit new environment variable values. Check both service routing and `/api/health` on the preview URL before making any production change.
+
+The public domain currently points to its Production deployment. A working Preview URL does not automatically update Production. Do not switch branches or merge the PR until the provider credentials, login, email, media uploads, and deployed application have passed live checks.
