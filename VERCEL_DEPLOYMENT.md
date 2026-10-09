@@ -1,35 +1,38 @@
-# Vercel Services deployment
+# Deploy STAT with Vercel Services
 
-The root `vercel.json` deploys STAT as one Vercel project with two services:
+Deploy both services from the repository root using the Vercel **Services** framework preset.
 
-| Service | Root | Public paths |
+| Service | Root | Public routes |
 | --- | --- | --- |
-| `client` | `client/` | `/` and all frontend routes/assets not matched earlier |
-| `server` | `server/` | `/api/*` and legacy `/uploads/*` |
+| `client` | `client/` | Frontend pages and assets under `/` |
+| `server` | `server/` | `/api/*`, legacy `/uploads/*` |
 
-The frontend's `fetch("/api/...")` calls are browser requests to the same origin and are routed by the public rewrite. There are **no server-to-server calls between the services**, so no internal `bindings` are configured. The `client/vite.config.ts` localhost proxy is used only by the local Vite dev server.
+STAT's frontend sends same-origin browser requests to `/api/*`; it does not call the server as an internal Vercel service. **No service bindings are required.**
 
-## Required environment variables
+## Production configuration
 
-Set on the Vercel project before deployment:
+Configure these Vercel environment variables:
 
-- `DATABASE_URL`: managed PostgreSQL connection string (never localhost or development credentials).
-- `SESSION_SECRET`: securely generated secret; never commit it.
-- `CLIENT_ORIGIN`: deployed origin, e.g. `https://your-project.vercel.app` (no trailing slash).
+- `DATABASE_URL` — managed PostgreSQL URL; production database, not localhost.
+- `SESSION_SECRET` — long random string.
+- `CLIENT_ORIGIN` — deployed URL, such as `https://your-site.vercel.app`.
 - `NODE_ENV=production`.
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` — Cloudinary project credentials; keep the API secret on the server only.
+- `RESEND_API_KEY`, `MAIL_FROM` — Resend API credential and a verified sender address (requires a verified sending domain).
 
-Run `npx prisma migrate deploy` against the production database as a separate, controlled step before accepting registrations. Do **not** run the seed or development reset in production. The API build invokes `prisma generate`.
+Configure Cloudinary upload restrictions appropriate to STAT's accepted media types and 16 MB size policy, plus abuse monitoring. The API signs upload parameters for authenticated users; media goes browser-to-Cloudinary rather than through Vercel's request body size limit. Cloudinary URLs are persisted as the existing `mediaUrl` fields. Legacy `/uploads/*` URLs from local development are not migrated; those files must be copied to cloud storage if they exist.
 
-## Important: deployment blockers remain
+Provision the database and then run `npx prisma migrate deploy` from `server/` against production before enabling registrations, after reviewing migrations. **Do not run dev seed or reset against production.** `npm run build` invokes Prisma generation followed by TypeScript compilation.
 
-- **Uploads are not production-ready.** `server/src/routes/uploads.ts` saves media using `multer.diskStorage` and `server/src/index.ts` serves it with `express.static`. Vercel Functions are not persistent media storage, and Express static serving is not supported there. The `/uploads/*` rewrite preserves URL routing but **does not fix uploading or serving files**. Replace this with object storage (e.g. Vercel Blob or S3), with the appropriate credentials and access policy, before inviting users.
-- In-memory rate limits and typing indicators will not be reliable across distinct function instances. Move them to a shared store before public use.
-- Email sending needs a real production provider and settings; inspect `server/src/lib/mail.ts`.
-- Check Vercel Function request size limits for media uploads; the current API permits files up to 16MB. A direct-to-object-store upload flow may be necessary.
-- A deployment and an end-to-end smoke test (register/login, media, messaging, nested frontend routes) have **not** yet been performed.
+For verification locally run `npm ci && npm run build` from each service directory with `DATABASE_URL` configured. Vercel Services can be exercised using `vercel dev` after linking the project.
 
-## Validate locally
+## Outstanding verification before public launch
 
-At repo root run `vercel dev` with Vercel CLI, or continue using the two local development servers described in README. For individual builds, run `npm ci && npm run build` in both `client/` and `server/`, using a test `DATABASE_URL` for Prisma generation.
+- Run the production build and the live deployment; test nested SPA routes, authentication, post/story/voice uploads, messaging, typing, rate limiting, and email verification.
+- Configure a hosted PostgreSQL database and perform/verify migrations.
+- Configure Cloudinary storage, media-type and filesize restrictions, and Resend's verified sending identity.
+- Plan periodic pruning of expired `rate_limit_buckets` and `typing_indicators` rows.
+- Verify error handling and abuse controls on public signed uploads. Upload signing checks client-declared MIME and size, which are not authoritative; enforce file limits at the storage provider too.
+- Existing local media files will not persist on Vercel; migrate media if retaining old data.
 
-Before merging, confirm that service names remain `client` and `server`, and that the public routing table is correct. There are no internal service bindings in this version.
+Do not merge the pull request or invite public registrations until these checks succeed.
