@@ -39,7 +39,9 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
-app.use("/uploads", express.static(config.uploadDir));
+if (!process.env.VERCEL) {
+  app.use("/uploads", express.static(config.uploadDir));
+}
 app.use(attachUser);
 
 app.get("/api/health", (_req, res) => {
