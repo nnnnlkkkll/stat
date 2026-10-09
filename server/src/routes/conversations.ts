@@ -435,13 +435,13 @@ conversationsRouter.delete("/:id/messages/:mid/reactions", requireAuth, async (r
 
 conversationsRouter.post("/:id/typing", requireAuth, async (req, res) => {
   await assertMember(req.params.id, req.user!.id);
-  setTyping(req.params.id, req.user!.id);
+  await setTyping(req.params.id, req.user!.id);
   res.json({ ok: true });
 });
 
 conversationsRouter.get("/:id/typing", requireAuth, async (req, res) => {
   await assertMember(req.params.id, req.user!.id);
-  const ids = typingUserIds(req.params.id, req.user!.id);
+  const ids = await typingUserIds(req.params.id, req.user!.id);
   const users = ids.length
     ? await prisma.user.findMany({ where: { id: { in: ids } }, include: { profile: true } })
     : [];
