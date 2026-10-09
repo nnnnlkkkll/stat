@@ -1,0 +1,28 @@
+name: STAT build checks
+on:
+  pull_request:
+  push:
+    branches:
+      - chore/vercel-services-deployment
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: [client, server]
+    defaults:
+      run:
+        working-directory: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.project }}/package-lock.json
+      - run: npm ci
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: postgresql://user:pass@localhost:5432/stat?schema=public
+          SESSION_SECRET: ci-only-not-a-production-secret
