@@ -10,7 +10,7 @@ function limiter(windowMs: number, max: number, message: string, name: string) {
       const expires = new Date(Date.now() + windowMs);
       const rows = await prisma.$queryRaw<{ hits: number }[]>`
         INSERT INTO "rate_limit_buckets" ("key", "hits", "reset_at")
-        VALUES (\${key}, 1, \${expires})
+        VALUES (${key}, 1, ${expires})
         ON CONFLICT ("key") DO UPDATE
           SET "hits" = CASE WHEN "rate_limit_buckets"."reset_at" <= now() THEN 1
                              ELSE "rate_limit_buckets"."hits" + 1 END,
