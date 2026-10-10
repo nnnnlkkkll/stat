@@ -1,0 +1,28 @@
+-- Bring the 2024 migrations in line with the deployed STAT Prisma schema.
+ALTER TABLE "users" ADD COLUMN "lastSeenAt" TIMESTAMP(3);
+ALTER TABLE "users" ADD COLUMN "emailVerifiedAt" TIMESTAMP(3);
+ALTER TABLE "users" ADD COLUMN "failedLogins" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "users" ADD COLUMN "lockedUntil" TIMESTAMP(3);
+ALTER TABLE "profiles" ADD COLUMN "viewsCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "profiles" ADD COLUMN "readReceipts" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "messages" ADD COLUMN "type" TEXT NOT NULL DEFAULT 'text';
+ALTER TABLE "messages" ADD COLUMN "mediaUrl" TEXT;
+ALTER TABLE "messages" ADD COLUMN "duration" INTEGER;
+ALTER TABLE "messages" ADD COLUMN "editedAt" TIMESTAMP(3);
+ALTER TABLE "messages" ADD COLUMN "deleted" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "messages" ADD COLUMN "replyToId" TEXT;
+CREATE TABLE "auth_tokens" ("id" TEXT PRIMARY KEY,"userId" TEXT NOT NULL,"type" TEXT NOT NULL,"tokenHash" TEXT NOT NULL,"expiresAt" TIMESTAMP(3) NOT NULL,"usedAt" TIMESTAMP(3),"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "auth_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE);
+CREATE UNIQUE INDEX "auth_tokens_tokenHash_key" ON "auth_tokens"("tokenHash");
+CREATE INDEX "auth_tokens_userId_type_idx" ON "auth_tokens"("userId","type");
+CREATE INDEX "auth_tokens_expiresAt_idx" ON "auth_tokens"("expiresAt");
+CREATE TABLE "message_reactions" ("messageId" TEXT NOT NULL,"userId" TEXT NOT NULL,"emoji" TEXT NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "message_reactions_pkey" PRIMARY KEY ("messageId","userId","emoji"),CONSTRAINT "message_reactions_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "messages"("id") ON DELETE CASCADE ON UPDATE CASCADE,CONSTRAINT "message_reactions_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE);
+CREATE INDEX "message_reactions_messageId_idx" ON "message_reactions"("messageId");
+CREATE TABLE "friend_requests" ("id" TEXT PRIMARY KEY,"fromId" TEXT NOT NULL,"toId" TEXT NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "friend_requests_fromId_fkey" FOREIGN KEY ("fromId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE,CONSTRAINT "friend_requests_toId_fkey" FOREIGN KEY ("toId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE);
+CREATE UNIQUE INDEX "friend_requests_fromId_toId_key" ON "friend_requests"("fromId","toId");
+CREATE INDEX "friend_requests_toId_createdAt_idx" ON "friend_requests"("toId","createdAt" DESC);
+CREATE INDEX "friend_requests_fromId_idx" ON "friend_requests"("fromId");
+CREATE TABLE "friendships" ("userLowId" TEXT NOT NULL,"userHighId" TEXT NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "friendships_pkey" PRIMARY KEY ("userLowId","userHighId"),CONSTRAINT "friendships_userLowId_fkey" FOREIGN KEY ("userLowId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE,CONSTRAINT "friendships_userHighId_fkey" FOREIGN KEY ("userHighId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE);
+CREATE INDEX "friendships_userHighId_idx" ON "friendships"("userHighId");
+CREATE TABLE "profile_views" ("profileUserId" TEXT NOT NULL,"viewerKey" TEXT NOT NULL,"day" TEXT NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "profile_views_pkey" PRIMARY KEY ("profileUserId","viewerKey","day"));
+CREATE INDEX "profile_views_profileUserId_idx" ON "profile_views"("profileUserId");
+ALTER TABLE "messages" ADD CONSTRAINT "messages_replyToId_fkey" FOREIGN KEY ("replyToId") REFERENCES "messages"("id") ON DELETE SET NULL ON UPDATE CASCADE;

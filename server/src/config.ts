@@ -1,8 +1,5 @@
 import "dotenv/config";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const here = path.dirname(fileURLToPath(import.meta.url));
 
 function required(name: string): string {
   const value = process.env[name];
@@ -19,6 +16,6 @@ export const config = {
   databaseUrl: required("DATABASE_URL"),
   sessionSecret: required("SESSION_SECRET"),
   clientOrigin: process.env.CLIENT_ORIGIN ?? "http://localhost:5173",
-  uploadDir: path.resolve(here, "..", process.env.UPLOAD_DIR ?? "uploads"),
+  uploadDir: path.resolve(process.cwd(), process.env.UPLOAD_DIR ?? "uploads"),
   sessionDays: 30,
 };

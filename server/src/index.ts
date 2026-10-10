@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
@@ -18,8 +17,6 @@ import { uploadsRouter } from "./routes/uploads.js";
 import { friendsRouter } from "./routes/friends.js";
 import { usersRouter } from "./routes/users.js";
 
-fs.mkdirSync(config.uploadDir, { recursive: true });
-
 const app = express();
 
 app.set("trust proxy", 1);
@@ -37,7 +34,6 @@ app.use(
 );
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
-app.use("/uploads", express.static(config.uploadDir));
 app.use(attachUser);
 
 app.get("/api/health", (_req, res) => {
@@ -58,15 +54,19 @@ app.use("/api", safetyRouter);
 app.use(notFound);
 app.use(errorHandler);
 
-const server = app.listen(config.port, () => {
-  console.log(`stat api on http://localhost:${config.port}`);
-});
+export default app;
 
-async function shutdown() {
-  server.close();
-  await prisma.$disconnect();
-  process.exit(0);
+if (process.env.STAT_STANDALONE === "1" || (process.env.NODE_ENV !== "production" && !process.env.VERCEL && !process.env.VERCEL_ENV)) {
+  const server = app.listen(config.port, () => {
+    console.log(`stat api on http://localhost:${config.port}`);
+  });
+
+  async function shutdown() {
+    server.close();
+    await prisma.$disconnect();
+    process.exit(0);
+  }
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
-
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);

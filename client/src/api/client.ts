@@ -195,8 +195,27 @@ export const api = {
     request("/api/reports", { method: "POST", body: JSON.stringify(body) }),
 
   upload: async (file: File) => {
+    const signed = await request<{
+      cloudName: string; apiKey: string; timestamp: number; folder: string; publicId: string; signature: string
+    }>("/api/uploads/sign", {
+      method: "POST",
+      body: JSON.stringify({ mime: file.type, size: file.size }),
+    });
     const form = new FormData();
     form.append("file", file);
-    return request<{ url: string }>("/api/uploads", { method: "POST", body: form });
+    form.append("api_key", signed.apiKey);
+    form.append("timestamp", String(signed.timestamp));
+    form.append("folder", signed.folder);
+    form.append("public_id", signed.publicId);
+    form.append("signature", signed.signature);
+    const result = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(signed.cloudName)}/auto/upload`, {
+      method: "POST",
+      body: form,
+    });
+    const data = await result.json().catch(() => ({}));
+    if (!result.ok || typeof data.secure_url !== "string") {
+      throw new ApiError(result.status, "UPLOAD_FAILED", data.error?.message ?? "Upload failed.");
+    }
+    return { url: data.secure_url as string };
   },
 };

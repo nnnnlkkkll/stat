@@ -1,26 +1,31 @@
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { config } from "../config.js";
 
-const mailDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../data");
-const mailLog = path.join(mailDir, "mail.log");
-
 export async function sendMail(input: { to: string; subject: string; text: string }) {
-  const stamp = new Date().toISOString();
-  const body = [
-    `--- ${stamp} ---`,
-    `To: ${input.to}`,
-    `Subject: ${input.subject}`,
-    "",
-    input.text,
-    "",
-  ].join("\n");
-
-  fs.mkdirSync(mailDir, { recursive: true });
-  fs.appendFileSync(mailLog, body, "utf8");
   if (!config.isProd) {
     console.log(`[mail] ${input.subject} -> ${input.to}\n${input.text}`);
+    return;
+  }
+  const apiKey = process.env.RESEND_API_KEY;
+  const sender = process.env.MAIL_FROM;
+  if (!apiKey || !sender) {
+    throw new Error("RESEND_API_KEY and MAIL_FROM must be set in production");
+  }
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: sender,
+      to: [input.to],
+      subject: input.subject,
+      text: input.text,
+    }),
+  });
+  if (!response.ok) {
+    console.error("Unable to deliver email", response.status);
+    throw new Error("Email delivery failed");
   }
 }
 

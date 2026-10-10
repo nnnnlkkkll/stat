@@ -404,3 +404,22 @@ model Report {
   @@index([reporterId])
   @@map("reports")
 }
+
+model RateLimitBucket {
+  key       String   @id
+  hits      Int
+  resetAt   DateTime @map("reset_at") @db.Timestamptz(6)
+
+  @@index([resetAt])
+  @@map("rate_limit_buckets")
+}
+
+model TypingIndicator {
+  conversationId String   @map("conversation_id")
+  userId         String   @map("user_id")
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
+
+  @@id([conversationId, userId])
+  @@index([expiresAt])
+  @@map("typing_indicators")
+}

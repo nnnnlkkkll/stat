@@ -1,17 +1,21 @@
-type Entry = { userId: string; until: number };
+import { prisma } from "../db.js";
 
-const rooms = new Map<string, Entry[]>();
-
-export function setTyping(conversationId: string, userId: string) {
-  const until = Date.now() + 4000;
-  const list = (rooms.get(conversationId) ?? []).filter((e) => e.userId !== userId && e.until > Date.now());
-  list.push({ userId, until });
-  rooms.set(conversationId, list);
+export async function setTyping(conversationId: string, userId: string) {
+  await prisma.typingIndicator.upsert({
+    where: { conversationId_userId: { conversationId, userId } },
+    create: { conversationId, userId, expiresAt: new Date(Date.now() + 4000) },
+    update: { expiresAt: new Date(Date.now() + 4000) },
+  });
 }
 
-export function typingUserIds(conversationId: string, exceptUserId: string) {
-  const now = Date.now();
-  const list = (rooms.get(conversationId) ?? []).filter((e) => e.until > now);
-  rooms.set(conversationId, list);
-  return list.filter((e) => e.userId !== exceptUserId).map((e) => e.userId);
+export async function typingUserIds(conversationId: string, exceptUserId: string) {
+  const rows = await prisma.typingIndicator.findMany({
+    where: {
+      conversationId,
+      userId: { not: exceptUserId },
+      expiresAt: { gt: new Date() },
+    },
+    select: { userId: true },
+  });
+  return rows.map((row) => row.userId);
 }
