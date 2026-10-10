@@ -113,6 +113,16 @@ authRouter.get("/username", searchLimiter, async (req, res) => {
 authRouter.post("/register", authLimiter, async (req, res) => {
   const body = parse(registerSchema, req.body);
 
+  if (config.isProd && (!process.env.RESEND_API_KEY?.trim() || !process.env.MAIL_FROM?.trim())) {
+    res.status(503).json({
+      error: {
+        code: "EMAIL_SERVICE_UNAVAILABLE",
+        message: "Account creation is temporarily unavailable. Please try again later.",
+      },
+    });
+    return;
+  }
+
   const existing = await prisma.user.findFirst({
     where: {
       OR: [{ username: body.username }, { email: body.email }],
