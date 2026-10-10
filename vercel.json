@@ -14,21 +14,29 @@
     "server": {
       "root": "server",
       "framework": "express",
-      "buildCommand": "npm run build"
+      "buildCommand": "npm run build",
+      "entrypoint": "src/index.ts",
+      "outputDirectory": "."
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": { "service": "server" }
+      "destination": {
+        "service": "server"
+      }
     },
     {
       "source": "/uploads/(.*)",
-      "destination": { "service": "server" }
+      "destination": {
+        "service": "server"
+      }
     },
     {
       "source": "/(.*)",
-      "destination": { "service": "client" }
+      "destination": {
+        "service": "client"
+      }
     }
   ]
 }
